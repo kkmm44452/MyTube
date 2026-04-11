@@ -1,0 +1,21 @@
+import { NextResponse, NextRequest } from "next/server";
+import jwt from "jsonwebtoken";
+
+export function GET(req: NextRequest) {
+  try {
+    const cookieHeader = req.headers.get("cookie") || "";
+    const match = cookieHeader.match(/token=([^;]+)/);
+    const token = match?.[1];
+
+    if (!token) return NextResponse.json({ user: null });
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      return NextResponse.json({ user: decoded });
+    } catch {
+      return NextResponse.json({ user: null });
+    }
+  } catch {
+    return NextResponse.json({ user: null });
+  }
+}
