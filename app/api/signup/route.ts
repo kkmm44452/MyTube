@@ -42,9 +42,17 @@ export async function POST(req: Request) {
       },
     });
 
+
+     const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      console.error("JWT_SECRET missing");
+      return NextResponse.json({ user: null }, { status: 500 });
+    }
+
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET!,
+      secret,
       { expiresIn: "1d" }
     );
 

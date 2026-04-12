@@ -43,13 +43,13 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prisma } from "@/prisma/lib/prisma";
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+// const s3 = new S3Client({
+//   region: process.env.MY_AWS_REGION,
+//   credentials: {
+//     accessKeyId: process.env.MY_AWS_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.MY_AWS_SECRET_ACCESS_KEY,
+//   },
+// });
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,16 +81,16 @@ export async function POST(req: NextRequest) {
     // 3. S3 key (RAW upload path)
     const key = `raw/${baseName}`;
 
-    // 4. Create presigned URL
-    const command = new PutObjectCommand({
-      Bucket: process.env.AWS_BUCKET!,
-      Key: key,
-      ContentType: type,
-    });
+    // // 4. Create presigned URL
+    // const command = new PutObjectCommand({
+    //  // Bucket: process.env.AWS_BUCKET!,
+    //   Key: key,
+    //   ContentType: type,
+    // });
 
-    const uploadUrl = await getSignedUrl(s3, command, {
-      expiresIn: 60 * 60, // 1 hour
-    });
+    // const uploadUrl = await getSignedUrl(s3, command, {
+    //   expiresIn: 60 * 60, // 1 hour
+    // });
 
     // 5. HLS output path (used later by Lambda / transcoder)
     const hlsPath = `hls/${baseName}/master.m3u8`;
@@ -106,14 +106,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 7. Response
-    return NextResponse.json({
-      uploadUrl,
-      videoId: video.id,
-      key,
-      hlsPath,
-      baseName,
-    });
+    // // 7. Response
+    // return NextResponse.json({
+    //   uploadUrl,
+    //   videoId: video.id,
+    //   key,
+    //   hlsPath,
+    //   baseName,
+    // });
+    
   } catch (error) {
     console.error("UPLOAD ERROR:", error);
     return NextResponse.json(

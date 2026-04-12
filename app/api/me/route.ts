@@ -10,8 +10,17 @@ export function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ user: null });
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-      return NextResponse.json({ user: decoded });
+      const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      console.error("JWT_SECRET missing");
+      return NextResponse.json({ user: null }, { status: 500 });
+    }
+
+    const decoded = jwt.verify(token, secret);
+
+    return NextResponse.json({ user: decoded });
+      
     } catch {
       return NextResponse.json({ user: null });
     }

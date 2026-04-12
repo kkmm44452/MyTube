@@ -33,9 +33,25 @@ export async function POST(req: Request) {
     }
 
     // create token
+    // const token = jwt.sign(
+    //   { userId: user.id },
+    //   process.env.JWT_SECRET!,
+    //   { expiresIn: "1d" }
+    // );
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      console.error("JWT_SECRET is missing");
+      return NextResponse.json(
+        { error: "Server misconfiguration" },
+        { status: 500 }
+      );
+
+    }
+
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET!,
+      secret,
       { expiresIn: "1d" }
     );
 
@@ -48,7 +64,7 @@ export async function POST(req: Request) {
       httpOnly: true,
       path: "/",
       sameSite: "lax",
-      // secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production",
     });
 
     return response;
