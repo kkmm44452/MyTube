@@ -10,14 +10,14 @@ export function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ user: null });
 
     try {
-      const secret = process.env.JWT_SECRET;
+      // const secret = process.env.JWT_SECRET;
 
-    if (!secret) {
-      console.error("JWT_SECRET missing");
-      return NextResponse.json({ user: null }, { status: 500 });
-    }
+    // if (!secret) {
+    //   console.error("JWT_SECRET missing");
+    //   return NextResponse.json({ user: null }, { status: 500 });
+    // }
 
-    const decoded = jwt.verify(token, secret);
+    const decoded = jwt.verify(token, "puneet");
 
     return NextResponse.json({ user: decoded });
       

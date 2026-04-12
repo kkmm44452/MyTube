@@ -39,7 +39,7 @@ const formattedVideos = videosArray.map((video: any) => ({
   id: video.id,
   title: video.title,
   channel: "My Channel",
-  masterUrl: `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${video.filename}`,
+  masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
 }));
 
 setVideos(formattedVideos);
