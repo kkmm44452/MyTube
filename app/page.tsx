@@ -35,7 +35,7 @@ export default function Home() {
         title: video.title,
         description: video.description,
         channel: "My Channel",
-        thumbnail: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}\thumbnail.jpg`|| video.thumbnail,
+        thumbnail: video.thumbnail || `https://d3ad2g8hyy43zt.cloudfront.net${video.filename.replace("master.m3u8", "")}thumbnail.jpg`,
         views: video.views,
         likes: video.likes || 0,
         comments: video.comments || 0,
