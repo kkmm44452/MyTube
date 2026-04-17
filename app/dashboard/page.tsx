@@ -94,7 +94,7 @@ export default function Dashboard() {
               key={video.id}
               className="bg-gray-900 rounded overflow-hidden shadow-lg"
             >
-              <div className="w-full relative pb-[56.25%]">
+              <div className="w-full relative pb">
                 {activeVideo === video.id ? (
   <VideoPlayer src={video.masterUrl} />
 ) : (
