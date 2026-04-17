@@ -96,17 +96,26 @@ export default function Dashboard() {
             >
               <div className="w-full relative pb-[56.25%]">
                 {activeVideo === video.id ? (
-                  <VideoPlayer src={video.masterUrl} />
-                ) : (
-                  <div
-                    className="cursor-pointer absolute inset-0 flex items-center justify-center"
-                    onClick={() => setActiveVideo(video.id)}
-                  >
-                    <div className="bg-white bg-opacity-30 rounded-full p-3">
-                      ▶
-                    </div>
-                  </div>
-                )}
+  <VideoPlayer src={video.masterUrl} />
+) : (
+  <div
+    className="w-full h-full cursor-pointer group"
+    onClick={() => setActiveVideo(video.id)}
+  >
+    <img
+      src={video.thumbnail || "/default-thumbnail.jpg"}
+      alt={video.title}
+      className="w-full h-full object-cover group-hover:opacity-80 transition"
+      loading="lazy"
+    />
+
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="bg-black/60 rounded-full p-3 text-white">
+        ▶
+      </div>
+    </div>
+  </div>
+)}
               </div>
 
          <div className="p-3 space-y-1">
