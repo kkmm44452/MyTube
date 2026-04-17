@@ -35,7 +35,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
       // Auto-play when manifest is loaded
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         // Pick the first quality (usually lowest) automatically
-        hls!.currentLevel = 0;
+        hls!.currentLevel = -1;
         videoRef.current!.play().catch(() => {
           // Autoplay may fail in some browsers, muted helps
           videoRef.current!.muted = true;
