@@ -31,13 +31,14 @@ import { prisma } from "@/prisma/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const body: {
-      filename: string;
-      type: string;
-      userId: string;
-    } = await req.json();
-
-    const { filename, type, userId } = body;
+  const body: {
+  filename: string;
+  type: string;
+  userId: string;
+  title?: string;
+  description?: string;
+} = await req.json();
+    const { filename, type, userId, title, description } = body;
 
     if (!filename || !type || !userId) {
       return NextResponse.json(
@@ -66,11 +67,11 @@ export async function POST(req: Request) {
     const video = await prisma.video.create({
       data: {
         userId,
-          title,
-          description,
-        filename: hlsPath,
-        key,
-        hlsPath,
+          title: title || filename,          // ✅ fallback safe
+          description: description || "",    // ✅ fallback safe
+          filename: hlsPath,
+          key,
+          hlsPath,
         // status: "PENDING",
       },
     });
