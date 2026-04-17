@@ -120,6 +120,7 @@ import { useAuth } from "@/context/AuthContext"; // 👈 your auth
 function UploadVideoForm() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -190,6 +191,8 @@ function UploadVideoForm() {
          filename: file.name,
           type: file.type,
           userId: user.userId, // ✅ FROM YOUR AUTH
+           title ,
+  description, // ✅ ADD THIS
         }),
       });
 
@@ -310,6 +313,13 @@ function UploadVideoForm() {
         onChange={(e) => setTitle(e.target.value)}
         className="border p-2 w-full mb-2 text-white"
       />
+
+      <textarea
+  placeholder="Video Description"
+  value={description}
+  onChange={(e) => setDescription(e.target.value)}
+  className="border p-2 w-full mb-2 text-white"
+/>
 
       <input
        ref={fileInputRef}
