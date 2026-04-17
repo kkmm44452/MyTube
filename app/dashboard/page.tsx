@@ -8,8 +8,13 @@ import UploadVideoForm from "@/app/components/UploadVideoForm";
 interface Video {
   id: string;
   title: string;
+  description?: string;
   channel?: string;
   masterUrl: string;
+  thumbnail?: string;
+  views?: number;
+  likes?: number;
+  comments?: number;
 }
 
 export default function Dashboard() {
@@ -41,12 +46,22 @@ export default function Dashboard() {
           ? data
           : data?.data ?? [];
 
-        const formatted = videosArray.map((video: any) => ({
-          id: video.id,
-          title: video.title,
-          channel: "My Channel",
-          masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
-        }));
+     const formatted = videosArray.map((video: any) => ({
+  id: video.id,
+  title: video.title,
+  description: video.description,
+  channel: "My Channel",
+  thumbnail:
+    video.thumbnail ||
+    `https://d3ad2g8hyy43zt.cloudfront.net${video.filename.replace(
+      "master.m3u8",
+      ""
+    )}thumbnail.jpg`,
+  views: video.views || 0,
+  likes: video.likes || 0,
+  comments: video.comments || 0,
+  masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
+}));
 
         setVideos(formatted);
       } catch (err: any) {
@@ -94,10 +109,25 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className="p-2">
-                <h2 className="text-sm font-semibold">{video.title}</h2>
-                <p className="text-xs text-gray-400">{video.channel}</p>
-              </div>
+         <div className="p-3 space-y-1">
+  <h2 className="text-sm font-semibold line-clamp-2">
+    {video.title}
+  </h2>
+
+  <p className="text-xs text-gray-400 line-clamp-2">
+    {video.description || "No description available"}
+  </p>
+
+  <p className="text-xs text-gray-500">
+    {video.channel}
+  </p>
+
+  <div className="flex justify-between text-xs text-gray-400 pt-1">
+    <span>👁 {video.views || 0}</span>
+    <span>👍 {video.likes || 0}</span>
+    <span>💬 {video.comments || 0}</span>
+  </div>
+</div>
             </div>
           ))
         )}
