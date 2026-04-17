@@ -66,7 +66,8 @@ export async function POST(req: Request) {
     const video = await prisma.video.create({
       data: {
         userId,
-        title: key,
+          title,
+          description,
         filename: hlsPath,
         key,
         hlsPath,
