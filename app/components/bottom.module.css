@@ -1,0 +1,27 @@
+.bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55px;
+  background: var(--bg);
+  border-top: 1px solid #333;
+  display: none;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.item {
+  color: var(--text);
+  font-size: 20px;
+}
+
+.active {
+  color: red;
+}
+
+@media (max-width: 768px) {
+  .bottom {
+    display: flex;
+  }
+}

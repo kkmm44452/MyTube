@@ -11,57 +11,68 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (!src || !videoRef.current) return;
+    if (!src) return;
 
-    // Pause all other videos on the page
-    const allVideos = document.querySelectorAll("video");
-    allVideos.forEach((v) => {
-      if (v !== videoRef.current) v.pause();
-    });
+    const video = videoRef.current;
+    if (!video) return;
 
     let hls: Hls | null = null;
 
-    if (Hls.isSupported() && src.endsWith(".m3u8")) {
-      hls = new Hls({
-        // Optional: tweak buffer settings for smoother playback
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        capLevelToPlayerSize: true,
-      });
-
-      hls.loadSource(src);
-      hls.attachMedia(videoRef.current);
-
-      // Auto-play when manifest is loaded
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Pick the first quality (usually lowest) automatically
-        hls!.currentLevel = -1;
-        videoRef.current!.play().catch(() => {
-          // Autoplay may fail in some browsers, muted helps
-          videoRef.current!.muted = true;
-          videoRef.current!.play();
+    const initPlayer = async () => {
+      try {
+        // 1. Get signed cookies FIRST
+        await fetch("/api/cloudfront-cookie", {
+          credentials: "include",
         });
-      });
 
-      // // Optional: log errors for debugging
-      // hls.on(Hls.Events.ERROR, (event, data) => {
-      //   console.error("HLS error:", data);
-      // });
-    } else {
-      // Fallback: native browser support (Safari)
-      videoRef.current.src = src;
-      videoRef.current.play().catch(() => {
-        videoRef.current!.muted = true;
-        videoRef.current!.play();
-      });
-    }
+        // 2. Pause other videos
+        document.querySelectorAll("video").forEach((v) => {
+          if (v !== video) v.pause();
+        });
+
+        // 3. HLS playback
+        if (Hls.isSupported() && src.endsWith(".m3u8")) {
+          hls = new Hls({
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            capLevelToPlayerSize: true,
+          });
+
+          hls.loadSource(src);
+          hls.attachMedia(video as HTMLMediaElement); // ✅ FIXED TYPE ISSUE
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            hls!.currentLevel = -1;
+
+            video.play().catch(() => {
+              video.muted = true;
+              video.play();
+            });
+          });
+        } else {
+          // Safari fallback
+          video.src = src;
+
+          video.play().catch(() => {
+            video.muted = true;
+            video.play();
+          });
+        }
+      } catch (err) {
+        console.error("Video init error:", err);
+      }
+    };
+
+    initPlayer();
 
     return () => {
       hls?.destroy();
     };
   }, [src]);
 
-  if (!src) return <div className="text-white p-4">No video selected</div>;
+  if (!src) {
+    return <div className="text-white p-4">No video selected</div>;
+  }
 
   return (
     <video
