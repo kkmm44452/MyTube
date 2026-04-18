@@ -160,12 +160,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ Extract cookies
-  const {
-    "CloudFront-Policy": policy,
-    "CloudFront-Signature": signature,
-    "CloudFront-Key-Pair-Id": keyPairId,
-  } = cookies;
+ console.log("RAW COOKIES:", cookies);
+
+const policy = cookies["CloudFront-Policy"];
+const signature = cookies["CloudFront-Signature"];
+const keyPairId = cookies["CloudFront-Key-Pair-Id"];
+
+console.log("🍪 Final check:");
+console.log({ policy: !!policy, signature: !!signature, keyPairId: !!keyPairId });
 
   console.log("🍪 Cookie check:");
   console.log("Policy exists:", !!policy);
