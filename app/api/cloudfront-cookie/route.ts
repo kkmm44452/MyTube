@@ -174,13 +174,13 @@ console.log({ policy: !!policy, signature: !!signature, keyPairId: !!keyPairId }
   console.log("Signature exists:", !!signature);
   console.log("KeyPairId exists:", !!keyPairId);
 
-  if (!policy || !signature || !keyPairId) {
-    console.log("❌ Cookie generation incomplete");
-    return NextResponse.json(
-      { error: "Failed to generate signed cookies" },
-      { status: 500 }
-    );
-  }
+  // if (!policy || !signature || !keyPairId) {
+  //   console.log("❌ Cookie generation incomplete");
+  //   return NextResponse.json(
+  //     { error: "Failed to generate signed cookies" },
+  //     { status: 500 }
+  //   );
+  // }
 
   console.log("🎉 All cookies valid, sending response");
 
@@ -189,13 +189,24 @@ console.log({ policy: !!policy, signature: !!signature, keyPairId: !!keyPairId }
   const cookieOptions = {
     path: "/",
     secure: true,
-    httpOnly: true,
+    httpOnly: false,
     sameSite: "none" as const,
   };
 
+  if (policy) {
   res.cookies.set("CloudFront-Policy", policy, cookieOptions);
+}
+
+if (signature) {
   res.cookies.set("CloudFront-Signature", signature, cookieOptions);
+}
+
+if (keyPairId) {
   res.cookies.set("CloudFront-Key-Pair-Id", keyPairId, cookieOptions);
+}
+  // res.cookies.set("CloudFront-Policy", policy, cookieOptions);
+  // res.cookies.set("CloudFront-Signature", signature, cookieOptions);
+  // res.cookies.set("CloudFront-Key-Pair-Id", keyPairId, cookieOptions);
 
   res.headers.set("Access-Control-Allow-Origin", origin || "*");
   res.headers.set("Access-Control-Allow-Credentials", "true");
