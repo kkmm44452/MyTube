@@ -153,7 +153,7 @@ export default function Home() {
 
   // 🔐 STEP 1: initialize CloudFront cookies once
   async function initCloudFrontCookies() {
-    await fetch("/api/cloudfront-cookies", {
+    await fetch("/api/cloudfront-cookie", {
       credentials: "include",
     });
   }
