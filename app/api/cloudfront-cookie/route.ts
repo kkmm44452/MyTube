@@ -2,15 +2,15 @@ import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const origin = req.headers.get("origin");
+const origin = req.headers.get("origin");
 
-  // ✅ Allow frontend origins
-  const allowedOrigins = [
+  // ✅ UPDATED SAFE VERSION
+  const allowedOrigins = new Set([
     "https://kkmmyoutube.netlify.app",
     "http://localhost:3000",
-  ];
+  ]);
 
-  if (!origin || !allowedOrigins.includes(origin)) {
+  if (origin && !allowedOrigins.has(origin)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -69,9 +69,9 @@ export async function GET(req: NextRequest) {
   res.cookies.set("CloudFront-Key-Pair-Id", keyPairId, cookieOptions);
 
   // ✅ CORS headers (CRITICAL)
-  res.headers.set("Access-Control-Allow-Origin", origin);
+  res.headers.set("Access-Control-Allow-Origin", origin || "*");
   res.headers.set("Access-Control-Allow-Credentials", "true");
-
+  res.headers.set("Vary", "Origin");
   return res;
 }
 
