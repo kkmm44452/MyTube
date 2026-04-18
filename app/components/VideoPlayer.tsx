@@ -36,8 +36,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
             maxBufferLength: 30,
             maxMaxBufferLength: 60,
             capLevelToPlayerSize: true,
+            // 🔥 THIS IS REQUIRED FOR COOKIES
+    xhrSetup: (xhr) => {
+      xhr.withCredentials = true;
+    },
+    
           });
 
+          hls.config.xhrSetup = (xhr) => {
+  xhr.withCredentials = true;
+};
           hls.loadSource(src);
           hls.attachMedia(video as HTMLMediaElement); // ✅ FIXED TYPE ISSUE
 
