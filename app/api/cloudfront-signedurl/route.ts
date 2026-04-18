@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const resourceUrl = `https://d3ad2g8hyy43zt.cloudfront.net/hls/${video}/master.m3u8`;
+    const resourceUrl = `https://d3ad2g8hyy43zt.cloudfront.net${video}master.m3u8`;
 
     const signedUrl = getSignedUrl({
       url: resourceUrl,
