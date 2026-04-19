@@ -131,7 +131,8 @@ export async function GET(req: NextRequest) {
 
     const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
 
-    const resource = "https://d3ad2g8hyy43zt.cloudfront.net/hls/*";
+    //const resource = "https://d3ad2g8hyy43zt.cloudfront.net/hls/*"; checking it for the production
+    const resource = "https://d3ad2g8hyy43zt.cloudfront.net/*";
 
     const cookies = getSignedCookies({
       keyPairId,
@@ -163,13 +164,22 @@ export async function GET(req: NextRequest) {
 
     const res = NextResponse.json({ success: true });
 
-    // 🚨 IMPORTANT: DO NOT set domain manually
-    const cookieOptions = {
-      path: "/",
-      secure: true,
-      sameSite: "none" as const,
-      httpOnly: false,
-    };
+    // 🚨 IMPORTANT: DO NOT set domain manually for application for same domain host
+    // const cookieOptions = {
+    //   path: "/",
+    //   secure: true,
+    //   sameSite: "none" as const,
+    //   httpOnly: false,
+    // };
+
+const cookieOptions = {
+  path: "/",
+  secure: true,
+  sameSite: "none" as const,
+  httpOnly: false,
+  domain: ".cloudfront.net", // 🔥 CRITICAL
+};
+
 
     res.cookies.set("CloudFront-Policy", policy, cookieOptions);
     res.cookies.set("CloudFront-Signature", signature, cookieOptions);
