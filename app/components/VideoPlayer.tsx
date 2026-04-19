@@ -191,7 +191,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
         setLoading(true);
 
         // optional: only needed if your backend issues cookies per video
-        await fetch(`/api/cloudfront-signedcookies`, {
+        await fetch(`/api/cloudfront-cookie`, {
           credentials: "include",
         });
       } catch (err) {
