@@ -70,21 +70,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
+ 
 
-    // 🔥 wildcard policy
-    const policy = JSON.stringify({
-      Statement: [
-        {
-          Resource: `${video}*`,
-          Condition: {
-            DateLessThan: {
-              "AWS:EpochTime": Math.floor(Date.now() / 1000) + 60 * 60
-            }
-          }
+   const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
+
+const cleanPath = video.startsWith("/") ? video : `/${video}`;
+
+const policy = JSON.stringify({
+  Statement: [
+    {
+      Resource: `${baseUrl}${cleanPath}*`,
+      Condition: {
+        DateLessThan: {
+          "AWS:EpochTime": Math.floor(Date.now() / 1000) + 60 * 60
         }
-      ]
-    });
+      }
+    }
+  ]
+});
 
     const signedUrl = getSignedUrl({
       url: `${video}`,
