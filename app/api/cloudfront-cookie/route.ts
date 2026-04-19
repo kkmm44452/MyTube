@@ -114,37 +114,90 @@
 
 //   return res;
 // }
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
 
 export async function GET(req: NextRequest) {
   try {
-    const resourceUrl = "https://d3ad2g8hyy43zt.cloudfront.net/hls/*";
+    const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID;
+    const privateKeyRaw = process.env.CLOUDFRONT_PRIVATE_KEY;
+
+    if (!keyPairId || !privateKeyRaw) {
+      return NextResponse.json(
+        { error: "Missing CloudFront credentials" },
+        { status: 500 }
+      );
+    }
+
+    const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+
+    // 🔥 IMPORTANT: protect full HLS folder
+    const resource = "https://d3ad2g8hyy43zt.cloudfront.net/hls/*";
 
     const cookies = getSignedCookies({
-      url: resourceUrl,
-      keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID!,
-      privateKey: process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n"),
-      dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+      keyPairId,
+      privateKey,
+      policy: JSON.stringify({
+        Statement: [
+          {
+            Resource: resource,
+            Condition: {
+              DateLessThan: {
+                "AWS:EpochTime": Math.floor(Date.now() / 1000) + 60 * 60,
+              },
+            },
+          },
+        ],
+      }),
     });
+
+    const policy = cookies["CloudFront-Policy"];
+    const signature = cookies["CloudFront-Signature"];
+    const keyPair = cookies["CloudFront-Key-Pair-Id"];
+
+    if (!policy || !signature || !keyPair) {
+      return NextResponse.json(
+        { error: "Failed to generate CloudFront cookies" },
+        { status: 500 }
+      );
+    }
 
     const res = NextResponse.json({ success: true });
 
-    // ✅ Set CloudFront cookies
-    Object.entries(cookies).forEach(([key, value]) => {
-      res.cookies.set({
-        name: key,
-        value,
-        path: "/",
-        secure: true,
-        httpOnly: false,
-        sameSite: "none",
-      });
+    // ⚠️ MUST match CloudFront domain exactly
+    const domain = ".d3ad2g8hyy43zt.cloudfront.net";
+
+    res.cookies.set({
+      name: "CloudFront-Policy",
+      value: policy,
+      domain,
+      path: "/",
+      secure: true,
+      sameSite: "none",
+    });
+
+    res.cookies.set({
+      name: "CloudFront-Signature",
+      value: signature,
+      domain,
+      path: "/",
+      secure: true,
+      sameSite: "none",
+    });
+
+    res.cookies.set({
+      name: "CloudFront-Key-Pair-Id",
+      value: keyPair,
+      domain,
+      path: "/",
+      secure: true,
+      sameSite: "none",
     });
 
     return res;
   } catch (err: any) {
+    console.error("CloudFront cookie error:", err);
+
     return NextResponse.json(
       { error: err.message || "cookie error" },
       { status: 500 }
