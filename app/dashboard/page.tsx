@@ -96,7 +96,7 @@ export default function Dashboard() {
             >
               <div className="w-full relative pb">
                 {activeVideo === video.id ? (
-  <VideoPlayer src={video.masterUrl} />
+  <VideoPlayer videoPath={video.masterUrl} />
 ) : (
   <div
     className="w-full h-full cursor-pointer group"
