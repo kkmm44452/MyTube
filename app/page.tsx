@@ -202,7 +202,7 @@ const formattedVideos = await Promise.all(
 
     // 🔐 SIGN THUMBNAIL
     const thumbRes = await fetch(
-      `/api/cloudfront-signedurl?url=${encodeURIComponent(thumbUrl)}`
+      `/api/cloudfront-signedurl?video=${encodeURIComponent(thumbUrl)}`
     );
     const { url: signedThumbnail } = await thumbRes.json();
 
