@@ -44,7 +44,6 @@
 //     );
 //   }
 // }
-
 import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -53,56 +52,59 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const video = searchParams.get("video");
 
+    console.log("👉 RAW INPUT VIDEO:", video);
+
     if (!video) {
-      return NextResponse.json(
-        { error: "Missing video param" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing video" }, { status: 400 });
     }
 
-    const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID;
-    const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY;
+    const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
 
-    if (!keyPairId || !privateKey) {
-      return NextResponse.json(
-        { error: "Missing CloudFront env variables" },
-        { status: 500 }
-      );
+    // 🔥 normalize path
+    let cleanPath = video;
+
+    if (!cleanPath.startsWith("/")) {
+      cleanPath = "/" + cleanPath;
     }
 
- 
+    // remove accidental domain if passed
+    cleanPath = cleanPath.replace(baseUrl, "");
 
-   const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
+    console.log("👉 CLEAN PATH:", cleanPath);
 
-const cleanPath = video.startsWith("/") ? video : `/${video}`;
+    // 🔥 TEST ONLY ONE FILE (NO WILDCARD)
+    const resourceUrl = `${baseUrl}${cleanPath}`;
 
-const policy = JSON.stringify({
-  Statement: [
-    {
-      Resource: `${baseUrl}${cleanPath}*`,
-      Condition: {
-        DateLessThan: {
-          "AWS:EpochTime": Math.floor(Date.now() / 1000) + 60 * 60
-        }
-      }
-    }
-  ]
-});
+    console.log("👉 RESOURCE URL:", resourceUrl);
+
+    const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
+    const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!;
+
+    console.log("👉 KEYPAIR ID:", keyPairId ? "OK" : "MISSING");
 
     const signedUrl = getSignedUrl({
-      url: `${video}`,
+      url: "https://d3ad2g8hyy43zt.cloudfront.net/hls/thalapathymovie-b4467729/*",
       keyPairId,
       privateKey: privateKey.replace(/\\n/g, "\n"),
-      policy, // ✅ THIS is the fix
+      dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
     });
 
-    return NextResponse.json({ url: signedUrl });
+    console.log("👉 SIGNED URL:", signedUrl);
 
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({
+      url: signedUrl,
+      debug: {
+        input: video,
+        cleanPath,
+        resourceUrl,
+      },
+    });
+
+  } catch (err: any) {
+    console.error("❌ ERROR:", err);
 
     return NextResponse.json(
-      { error: message },
+      { error: err.message },
       { status: 500 }
     );
   }
