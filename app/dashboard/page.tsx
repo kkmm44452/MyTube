@@ -46,22 +46,57 @@ export default function Dashboard() {
           ? data
           : data?.data ?? [];
 
-     const formatted = videosArray.map((video: any) => ({
-  id: video.id,
-  title: video.title,
-  description: video.description,
-  channel: "My Channel",
-  thumbnail:
-    video.thumbnail ||
-    `https://d3ad2g8hyy43zt.cloudfront.net${video.filename.replace(
-      "master.m3u8",
-      ""
-    )}thumbnail.jpg`,
-  views: video.views || 0,
-  likes: video.likes || 0,
-  comments: video.comments || 0,
-  masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
-}));
+//      const formatted = videosArray.map((video: any) => ({
+//   id: video.id,
+//   title: video.title,
+//   description: video.description,
+//   channel: "My Channel",
+//   thumbnail:
+//     video.thumbnail ||
+//     `https://d3ad2g8hyy43zt.cloudfront.net${video.filename.replace(
+//       "master.m3u8",
+//       ""
+//     )}thumbnail.jpg`,
+//   views: video.views || 0,
+//   likes: video.likes || 0,
+//   comments: video.comments || 0,
+//   masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
+// }));
+
+const formatted = await Promise.all(
+  videosArray.map(async (video: any) => {
+    const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
+
+    // 🔥 build thumbnail URL
+    const thumbUrl =
+      video.thumbnail ||
+      `${baseUrl}${video.filename.replace("master.m3u8", "thumbnail.jpg")}`;
+
+    // 🔐 get signed thumbnail URL
+    const thumbRes = await fetch(
+      `/api/cloudfront-signedurl?video=${encodeURIComponent(thumbUrl)}`
+    );
+    const { url: signedThumbnail } = await thumbRes.json();
+
+    return {
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      channel: "My Channel",
+
+      thumbnail: signedThumbnail, // ✅ signed thumbnail
+
+      views: video.views || 0,
+      likes: video.likes || 0,
+      comments: video.comments || 0,
+
+      // 🎥 keep video via cookies OR direct
+      masterUrl: `${baseUrl}${video.filename}`,
+    };
+  })
+);
+
+setVideos(formatted);
 
         setVideos(formatted);
       } catch (err: any) {
