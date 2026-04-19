@@ -136,7 +136,6 @@ export async function GET(req: NextRequest) {
       res.cookies.set({
         name: key,
         value,
-        domain: ".cloudfront.net",
         path: "/",
         secure: true,
         httpOnly: false,
