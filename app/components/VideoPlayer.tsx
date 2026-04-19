@@ -169,48 +169,44 @@
 // };
 
 // export default VideoPlayer;
-
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 interface VideoPlayerProps {
-  videoPath?: string; // 👈 instead of src, pass folder path
+  videoPath?: string; // full .m3u8 URL
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔥 Step 1: Fetch signed URL
+  // 1. Only ensure cookies are set (NOT fetching URL)
   useEffect(() => {
     if (!videoPath) return;
 
-    const fetchSignedUrl = async () => {
+    const setupCookies = async () => {
       try {
         setLoading(true);
 
-        const res = await fetch(
-          `/api/cloudfront-signedurl?video=${videoPath}`
-        );
-        const data = await res.json();
-
-        setSignedUrl(data.url);
+        // optional: only needed if your backend issues cookies per video
+        await fetch(`/api/cloudfront-signedcookies`, {
+          credentials: "include",
+        });
       } catch (err) {
-        console.error("Error fetching signed URL:", err);
+        console.error("Cookie setup failed:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSignedUrl();
+    setupCookies();
   }, [videoPath]);
 
-  // 🔥 Step 2: Initialize player
+  // 2. Play video using direct .m3u8 URL
   useEffect(() => {
-    if (!signedUrl) return;
+    if (!videoPath) return;
 
     const video = videoRef.current;
     if (!video) return;
@@ -222,14 +218,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
       if (v !== video) v.pause();
     });
 
-   if (Hls.isSupported() && signedUrl.includes(".m3u8")) {
+    if (Hls.isSupported() && videoPath.includes(".m3u8")) {
       hls = new Hls({
         xhrSetup: (xhr) => {
-          xhr.withCredentials = true;
+          xhr.withCredentials = true; // 🔥 REQUIRED for signed cookies
         },
       });
 
-      hls.loadSource(signedUrl);
+      hls.loadSource(videoPath); // 👈 DIRECT URL
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -239,7 +235,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
         });
       });
     } else {
-      video.src = signedUrl;
+      video.src = videoPath;
 
       video.play().catch(() => {
         video.muted = true;
@@ -250,7 +246,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
     return () => {
       hls?.destroy();
     };
-  }, [signedUrl]);
+  }, [videoPath]);
 
   if (!videoPath) {
     return <div className="text-white p-4">No video selected</div>;
@@ -259,7 +255,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
   return (
     <div className="w-full">
       {loading && (
-        <div className="text-white p-2">Loading video...</div>
+        <div className="text-white p-2">Preparing secure access...</div>
       )}
 
       <video
