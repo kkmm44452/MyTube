@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     console.log("👉 KEYPAIR ID:", keyPairId ? "OK" : "MISSING");
 
     const signedUrl = getSignedUrl({
-      url: "https://d3ad2g8hyy43zt.cloudfront.net/hls/thalapathymovie-b4467729/master.m3u8",
+      url: video,
       keyPairId,
       privateKey: privateKey.replace(/\\n/g, "\n"),
       dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
