@@ -95,20 +95,122 @@
 
 // export default VideoPlayer;
 
+// "use client";
+
+// import React, { useEffect, useRef } from "react";
+// import Hls from "hls.js";
+
+// interface VideoPlayerProps {
+//   src?: string;
+// }
+
+// const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
+//   const videoRef = useRef<HTMLVideoElement>(null);
+
+//   useEffect(() => {
+//     if (!src) return;
+
+//     const video = videoRef.current;
+//     if (!video) return;
+
+//     let hls: Hls | null = null;
+
+//     // pause other videos
+//     document.querySelectorAll("video").forEach((v) => {
+//       if (v !== video) v.pause();
+//     });
+
+//     if (Hls.isSupported() && src.endsWith(".m3u8")) {
+//       hls = new Hls({
+//         maxBufferLength: 30,
+//         maxMaxBufferLength: 60,
+//         capLevelToPlayerSize: true,
+//         xhrSetup: (xhr) => {
+//           xhr.withCredentials = true; // required for cookies
+//         },
+//       });
+
+//       hls.loadSource(src);
+//       hls.attachMedia(video);
+
+//       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+//         video.play().catch(() => {
+//           video.muted = true;
+//           video.play();
+//         });
+//       });
+//     } else {
+//       video.src = src;
+
+//       video.play().catch(() => {
+//         video.muted = true;
+//         video.play();
+//       });
+//     }
+
+//     return () => {
+//       hls?.destroy();
+//     };
+//   }, [src]);
+
+//   if (!src) {
+//     return <div className="text-white p-4">No video selected</div>;
+//   }
+
+//   return (
+//     <video
+//       ref={videoRef}
+//       controls
+//       className="w-full max-h-96 bg-black rounded"
+//       playsInline
+//       muted
+//     />
+//   );
+// };
+
+// export default VideoPlayer;
+
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 interface VideoPlayerProps {
-  src?: string;
+  videoPath?: string; // 👈 instead of src, pass folder path
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
+  // 🔥 Step 1: Fetch signed URL
   useEffect(() => {
-    if (!src) return;
+    if (!videoPath) return;
+
+    const fetchSignedUrl = async () => {
+      try {
+        setLoading(true);
+
+        const res = await fetch(
+          `/api/sign?video=${videoPath}`
+        );
+        const data = await res.json();
+
+        setSignedUrl(data.url);
+      } catch (err) {
+        console.error("Error fetching signed URL:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSignedUrl();
+  }, [videoPath]);
+
+  // 🔥 Step 2: Initialize player
+  useEffect(() => {
+    if (!signedUrl) return;
 
     const video = videoRef.current;
     if (!video) return;
@@ -120,17 +222,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
       if (v !== video) v.pause();
     });
 
-    if (Hls.isSupported() && src.endsWith(".m3u8")) {
+    if (Hls.isSupported() && signedUrl.includes(".m3u8")) {
       hls = new Hls({
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
         capLevelToPlayerSize: true,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = true; // required for cookies
-        },
       });
 
-      hls.loadSource(src);
+      hls.loadSource(signedUrl);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -140,7 +239,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
         });
       });
     } else {
-      video.src = src;
+      video.src = signedUrl;
 
       video.play().catch(() => {
         video.muted = true;
@@ -151,20 +250,26 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
     return () => {
       hls?.destroy();
     };
-  }, [src]);
+  }, [signedUrl]);
 
-  if (!src) {
+  if (!videoPath) {
     return <div className="text-white p-4">No video selected</div>;
   }
 
   return (
-    <video
-      ref={videoRef}
-      controls
-      className="w-full max-h-96 bg-black rounded"
-      playsInline
-      muted
-    />
+    <div className="w-full">
+      {loading && (
+        <div className="text-white p-2">Loading video...</div>
+      )}
+
+      <video
+        ref={videoRef}
+        controls
+        className="w-full max-h-96 bg-black rounded"
+        playsInline
+        muted
+      />
+    </div>
   );
 };
 
