@@ -222,14 +222,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
       if (v !== video) v.pause();
     });
 
-    if (Hls.isSupported() && signedUrl.includes(".m3u8")) {
+   if (Hls.isSupported() && signedUrl.includes(".m3u8")) {
       hls = new Hls({
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        capLevelToPlayerSize: true,
-          xhrSetup: (xhr) => {
-    xhr.withCredentials = true;
-  }
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = true;
+        },
       });
 
       hls.loadSource(signedUrl);
