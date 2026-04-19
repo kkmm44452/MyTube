@@ -170,29 +170,60 @@ export default function Home() {
         ? data
         : data.videos || [];
 
-      // 🔥 NO SIGNED URL ANYMORE — use direct CloudFront URL
-      const formattedVideos = videosArray.map((video: any) => ({
-        id: video.id,
-        title: video.title,
-        description: video.description,
-        channel: "My Channel",
-        filename: video.filename,
+      // // 🔥 NO SIGNED URL ANYMORE — use direct CloudFront URL
+      // const formattedVideos = videosArray.map((video: any) => ({
+      //   id: video.id,
+      //   title: video.title,
+      //   description: video.description,
+      //   channel: "My Channel",
+      //   filename: video.filename,
 
-        thumbnail:
-          video.thumbnail ||
-          `https://d3ad2g8hyy43zt.cloudfront.net${video.filename.replace(
-            "master.m3u8",
-            ""
-          )}thumbnail.jpg`,
+      //   thumbnail:
+      //     video.thumbnail ||
+      //     `https://d3ad2g8hyy43zt.cloudfront.net${video.filename.replace(
+      //       "master.m3u8",
+      //       ""
+      //     )}thumbnail.jpg`,
 
-        views: video.views,
-        likes: video.likes || 0,
-        comments: video.comments || 0,
+      //   views: video.views,
+      //   likes: video.likes || 0,
+      //   comments: video.comments || 0,
 
-        // ✅ DIRECT URL (cookies will protect access)
-        masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
-      }));
+      //   // ✅ DIRECT URL (cookies will protect access)
+      //   masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
+      // }));
+const formattedVideos = await Promise.all(
+  videosArray.map(async (video: any) => {
+    const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
 
+    const thumbUrl =
+      video.thumbnail ||
+      `${baseUrl}${video.filename.replace("master.m3u8", "thumbnail.jpg")}`;
+
+    // 🔐 SIGN THUMBNAIL
+    const thumbRes = await fetch(
+      `/api/cloudfront-signedurl?url=${encodeURIComponent(thumbUrl)}`
+    );
+    const { url: signedThumbnail } = await thumbRes.json();
+
+    return {
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      channel: "My Channel",
+      filename: video.filename,
+
+      thumbnail: signedThumbnail, // ✅ SIGNED
+
+      views: video.views,
+      likes: video.likes || 0,
+      comments: video.comments || 0,
+
+      // ✅ still using cookies for video
+      masterUrl: `${baseUrl}${video.filename}`,
+    };
+  })
+);
       setVideos(formattedVideos);
     }
 
