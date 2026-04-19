@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     const policy = JSON.stringify({
       Statement: [
         {
-          Resource: `${baseUrl}${video}*`,
+          Resource: `${video}*`,
           Condition: {
             DateLessThan: {
               "AWS:EpochTime": Math.floor(Date.now() / 1000) + 60 * 60
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
     });
 
     const signedUrl = getSignedUrl({
-      url: `${baseUrl}${video}master.m3u8`,
+      url: `${video}`,
       keyPairId,
       privateKey: privateKey.replace(/\\n/g, "\n"),
       policy, // ✅ THIS is the fix
