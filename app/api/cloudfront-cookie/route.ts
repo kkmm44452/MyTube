@@ -131,7 +131,6 @@ export async function GET(req: NextRequest) {
 
     const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
 
-    // 🔥 IMPORTANT: protect full HLS folder
     const resource = "https://d3ad2g8hyy43zt.cloudfront.net/hls/*";
 
     const cookies = getSignedCookies({
@@ -157,42 +156,28 @@ export async function GET(req: NextRequest) {
 
     if (!policy || !signature || !keyPair) {
       return NextResponse.json(
-        { error: "Failed to generate CloudFront cookies" },
+        { error: "Failed to generate cookies" },
         { status: 500 }
       );
     }
 
     const res = NextResponse.json({ success: true });
 
-    // ⚠️ MUST match CloudFront domain exactly
-    const domain = ".d3ad2g8hyy43zt.cloudfront.net";
-
-    res.cookies.set({
-      name: "CloudFront-Policy",
-      value: policy,
-      domain,
+    // 🚨 IMPORTANT: DO NOT set domain manually
+    const cookieOptions = {
       path: "/",
       secure: true,
-      sameSite: "none",
-    });
+      sameSite: "none" as const,
+      httpOnly: false,
+    };
 
-    res.cookies.set({
-      name: "CloudFront-Signature",
-      value: signature,
-      domain,
-      path: "/",
-      secure: true,
-      sameSite: "none",
-    });
+    res.cookies.set("CloudFront-Policy", policy, cookieOptions);
+    res.cookies.set("CloudFront-Signature", signature, cookieOptions);
+    res.cookies.set("CloudFront-Key-Pair-Id", keyPair, cookieOptions);
 
-    res.cookies.set({
-      name: "CloudFront-Key-Pair-Id",
-      value: keyPair,
-      domain,
-      path: "/",
-      secure: true,
-      sameSite: "none",
-    });
+    res.headers.set("Access-Control-Allow-Origin", req.headers.get("origin") || "");
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+    res.headers.set("Vary", "Origin");
 
     return res;
   } catch (err: any) {

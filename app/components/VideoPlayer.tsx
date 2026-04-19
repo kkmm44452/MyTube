@@ -227,6 +227,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
         capLevelToPlayerSize: true,
+          xhrSetup: (xhr) => {
+    xhr.withCredentials = true;
+  }
       });
 
       hls.loadSource(signedUrl);
