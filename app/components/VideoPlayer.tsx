@@ -193,7 +193,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoPath }) => {
         setLoading(true);
 
         const res = await fetch(
-          `/api/sign?video=${videoPath}`
+          `/api/cloudfront-signedurl?video=${videoPath}`
         );
         const data = await res.json();
 

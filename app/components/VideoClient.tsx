@@ -15,7 +15,7 @@ export default function VideoClient({ videos }: any) {
             
             <div className="w-full relative pb-[56.25%]">
               {activeVideo === video.id ? (
-                <VideoPlayer src={video.masterUrl} />
+                <VideoPlayer videoPath={video.masterUrl} />
               ) : (
                 <div
                   className="cursor-pointer absolute top-0 left-0 w-full h-full"
