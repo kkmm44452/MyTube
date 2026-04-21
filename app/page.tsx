@@ -241,7 +241,8 @@ const formattedVideos = await Promise.all(
             {/* Thumbnail / Player */}
             <div className="relative w-full aspect-video bg-black">
               {activeVideo === video.id ? (
-               <VideoPlayer videoPath={video.masterUrl} />
+              //  <VideoPlayer videoPath={video.masterUrl} />
+              <VideoPlayer videoPath={`/api/cloudfront-playlist?video=${video.masterUrl}`} />
               ) : (
                 <div
                   className="w-full h-full cursor-pointer group"
