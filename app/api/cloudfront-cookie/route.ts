@@ -165,20 +165,20 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.json({ success: true });
 
     // 🚨 IMPORTANT: DO NOT set domain manually for application for same domain host
-    // const cookieOptions = {
-    //   path: "/",
-    //   secure: true,
-    //   sameSite: "none" as const,
-    //   httpOnly: false,
-    // };
+    const cookieOptions = {
+      path: "/",
+      secure: true,
+      sameSite: "none" as const,
+      httpOnly: false,
+    };
 
-const cookieOptions = {
-  path: "/",
-  secure: true,
-  sameSite: "none" as const,
-  httpOnly: false,
-  domain: ".cloudfront.net", // 🔥 CRITICAL
-};
+// const cookieOptions = {
+//   path: "/",
+//   secure: true,
+//   sameSite: "none" as const,
+//   httpOnly: false,
+//   domain: ".cloudfront.net", // 🔥 CRITICAL
+// };
 
 
     res.cookies.set("CloudFront-Policy", policy, cookieOptions);
