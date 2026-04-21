@@ -80,7 +80,7 @@ const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
           return {
             ...video,
             thumbnail: thumbData.url, // ✅ signed thumbnail
-            masterUrl: data.url, // ✅ SIGNED URL HERE
+            masterUrl: `${baseUrl}${data.url}`,
           };
         })
       );
@@ -104,6 +104,7 @@ const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
               {activeVideo === video.id ? (
               //  <VideoPlayer videoPath={`/api/cloudfront-playlist?video=${encodeURIComponent( video.masterUrl )}`} />
               <VideoPlayer videoPath={ video.masterUrl } />
+
               ) : (
                 <div
                   className="w-full h-full cursor-pointer group"
