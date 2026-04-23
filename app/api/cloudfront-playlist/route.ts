@@ -161,7 +161,6 @@
 //     );
 //   }
 // }
-
 import { NextRequest, NextResponse } from "next/server";
 import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 
@@ -178,18 +177,14 @@ export async function GET(req: NextRequest) {
 
     video = decodeURIComponent(video);
 
-    // normalize
-    video = video.replace(BASE, "");
     if (!video.startsWith("/")) video = "/" + video;
 
-    const masterUrl = `${BASE}${video}`;
-
-    // 🔥 1. fetch master.m3u8 FIRST
-    const res = await fetch(masterUrl);
+    const url = `${BASE}${video}`;
+    const res = await fetch(url);
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: "Failed to fetch master", status: res.status },
+        { error: "Failed to fetch playlist", status: res.status },
         { status: 500 }
       );
     }
@@ -199,9 +194,9 @@ export async function GET(req: NextRequest) {
     const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
     const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
 
-    const folder = video.replace("master.m3u8", "");
+    const isMaster = video.includes("master.m3u8");
+    const basePath = video.substring(0, video.lastIndexOf("/") + 1);
 
-    // 🔥 2. rewrite ALL .ts segments
     playlist = playlist
       .split("\n")
       .map((line) => {
@@ -209,29 +204,42 @@ export async function GET(req: NextRequest) {
 
         if (!trimmed || trimmed.startsWith("#")) return line;
 
-        // segment file
-        if (trimmed.includes(".ts")) {
-          const segmentPath = trimmed.startsWith("/")
-            ? trimmed
-            : `${folder}${trimmed}`;
+        const filePath = trimmed.startsWith("/")
+          ? trimmed
+          : `${basePath}${trimmed}`;
 
-          const fileUrl = `${BASE}${segmentPath}`;
+        const fileUrl = `${BASE}${filePath}`;
 
-          const signed = getSignedUrl({
+        // =========================
+        // 🔥 MASTER LEVEL
+        // =========================
+        if (isMaster && trimmed.endsWith(".m3u8")) {
+          const signedIndex = getSignedUrl({
             url: fileUrl,
             keyPairId,
             privateKey,
             dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
           });
 
-          return signed;
+          return signedIndex;
+        }
+
+        // =========================
+        // 🔥 INDEX LEVEL
+        // =========================
+        if (!isMaster && trimmed.match(/\.ts(\?|$)/)) {
+          return getSignedUrl({
+            url: fileUrl,
+            keyPairId,
+            privateKey,
+            dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+          });
         }
 
         return line;
       })
       .join("\n");
 
-    // 🔥 3. return rewritten playlist
     return new NextResponse(playlist, {
       headers: {
         "Content-Type": "application/vnd.apple.mpegurl",
@@ -239,10 +247,7 @@ export async function GET(req: NextRequest) {
         "Access-Control-Allow-Origin": "*",
       },
     });
-
   } catch (err: any) {
-    console.error("PLAYLIST ERROR:", err);
-
     return NextResponse.json(
       { error: err.message || "Internal error" },
       { status: 500 }
