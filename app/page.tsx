@@ -56,13 +56,10 @@ export default function Home() {
 
       // 🔥 STEP 2: fetch signed URLs
       const withSignedUrls = await Promise.all(
-        baseVideos.map(async (video: any) => {
-          const res = await fetch(
-            `/api/cloudfront-signedurl?video=${video.filename.replace(
-              "master.m3u8",
-              ""
-            )}`
-          );
+  baseVideos.map(async (video: any) => {
+    const res = await fetch(
+      `/api/cloudfront-signedurl?video=https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`
+    );
 
           const data = await res.json();
 const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
@@ -80,7 +77,7 @@ const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
           return {
             ...video,
             thumbnail: thumbData.url, // ✅ signed thumbnail
-            masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
+            masterUrl: data.url, // ✅ USE SIGNED URL HERE
           };
         })
       );
