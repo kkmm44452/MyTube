@@ -377,10 +377,12 @@ export async function GET(req: NextRequest) {
           return getSignedUrl({
             url: fileUrl,
             keyPairId,
-            privateKey,
+            privateKey: privateKey.replace(/\\n/g, "\n"),
             dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
           });
         }
+
+
 
         return line;
       })
