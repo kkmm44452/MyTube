@@ -112,25 +112,80 @@ export async function GET(req: NextRequest) {
 
     console.log("==============================\n");
 
+    const res = await fetch(signedUrl);
+
+    if (!res.ok) {
+      console.log("❌ Failed to fetch master:", res.status);
+      return NextResponse.json(
+        { error: "Failed to fetch master", status: res.status },
+        { status: 500 }
+      );
+    }
+
+    let playlist = await res.text();
+
+    console.log("👉 MASTER FETCHED SUCCESSFULLY");
+
+    const isMaster = playlist.includes("#EXT-X-STREAM-INF");
+    const basePath = cleanPath.substring(0, cleanPath.lastIndexOf("/") + 1);
+
+    // =========================
+    // 🔥 REWRITE PLAYLIST
+    // =========================
+    playlist = playlist
+      .split("\n")
+      .map((line) => {
+        const trimmed = line.trim();
+
+        if (!trimmed || trimmed.startsWith("#")) return line;
+
+        const filePath = trimmed.startsWith("/")
+          ? trimmed
+          : `${basePath}${trimmed}`;
+
+        const fileUrl = `${baseUrl}${filePath}`;
+
+        // =========================
+        // 🔥 MASTER → redirect to API
+        // =========================
+        if (isMaster && trimmed.endsWith(".m3u8")) {
+          return `/api/cloudfront-playlist?video=${encodeURIComponent(filePath)}`;
+        }
+
+        // =========================
+        // 🔥 TS SIGNING
+        // =========================
+        if (!isMaster && trimmed.match(/\.ts(\?|$)/)) {
+          return getSignedUrl({
+            url: fileUrl,
+            keyPairId,
+            privateKey,
+            dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+          });
+        }
+
+        return line;
+      })
+      .join("\n");
+
+    console.log("👉 PLAYLIST REWRITTEN");
+
     // =========================
     // RESPONSE
     // =========================
-    return NextResponse.json({
-      url: signedUrl,
-      debug: {
-        input: video,
-        cleanPath,
-        resourceUrl,
+    return new NextResponse(playlist, {
+      headers: {
+        "Content-Type": "application/vnd.apple.m3u8",
+        "Cache-Control": "no-cache",
+        "Access-Control-Allow-Origin": "*",
       },
     });
 
   } catch (err: any) {
-    console.error("❌ ERROR IN SIGN API:", err);
+    console.error("❌ ERROR:", err);
 
     return NextResponse.json(
-      {
-        error: err.message || "Internal error",
-      },
+      { error: err.message || "Internal error" },
       { status: 500 }
     );
   }
