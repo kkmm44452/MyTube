@@ -80,7 +80,7 @@ const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
           return {
             ...video,
             thumbnail: thumbData.url, // ✅ signed thumbnail
-            masterUrl: `${baseUrl}${data.url}`,
+            masterUrl: `https://d3ad2g8hyy43zt.cloudfront.net${video.filename}`,
           };
         })
       );
