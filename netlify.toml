@@ -1,10 +1,8 @@
 [build]
   command = "npm run build"
-
-[build.environment]
-  NODE_VERSION = "18"
-  NODE_OPTIONS = "--openssl-legacy-provider"
-  SECRETS_SCAN_ENABLED = "false"
+  environment = { SECRETS_SCAN_ENABLED = "false" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+  
