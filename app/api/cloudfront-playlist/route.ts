@@ -176,11 +176,25 @@ export async function GET(req: NextRequest) {
     }
 
     video = decodeURIComponent(video);
-
     if (!video.startsWith("/")) video = "/" + video;
 
+    const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
+    const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
+
     const url = `${BASE}${video}`;
-    const res = await fetch(url);
+
+    // =========================
+    // 🔥 STEP 1: SIGN MASTER (INTERNAL ONLY)
+    // =========================
+    const signedMasterUrl = getSignedUrl({
+      url,
+      keyPairId,
+      privateKey,
+      dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    // fetch master securely
+    const res = await fetch(signedMasterUrl);
 
     if (!res.ok) {
       return NextResponse.json(
@@ -191,10 +205,7 @@ export async function GET(req: NextRequest) {
 
     let playlist = await res.text();
 
-    const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
-    const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
-
-    const isMaster = video.includes("master.m3u8");
+    const isMaster = playlist.includes("#EXT-X-STREAM-INF");
     const basePath = video.substring(0, video.lastIndexOf("/") + 1);
 
     playlist = playlist
@@ -211,21 +222,14 @@ export async function GET(req: NextRequest) {
         const fileUrl = `${BASE}${filePath}`;
 
         // =========================
-        // 🔥 MASTER LEVEL
+        // 🔥 MASTER → redirect to API (NOT CloudFront)
         // =========================
         if (isMaster && trimmed.endsWith(".m3u8")) {
-          const signedIndex = getSignedUrl({
-            url: fileUrl,
-            keyPairId,
-            privateKey,
-            dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
-          });
-
-          return signedIndex;
+          return `/api/cloudfront-playlist?video=${encodeURIComponent(filePath)}`;
         }
 
         // =========================
-        // 🔥 INDEX LEVEL
+        // 🔥 INDEX → SIGN TS ONLY
         // =========================
         if (!isMaster && trimmed.match(/\.ts(\?|$)/)) {
           return getSignedUrl({
@@ -242,7 +246,7 @@ export async function GET(req: NextRequest) {
 
     return new NextResponse(playlist, {
       headers: {
-        "Content-Type": "application/vnd.apple.mpegurl",
+        "Content-Type": "application/vnd.apple.m3u8",
         "Cache-Control": "no-cache",
         "Access-Control-Allow-Origin": "*",
       },

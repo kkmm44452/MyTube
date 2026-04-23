@@ -52,45 +52,69 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const video = searchParams.get("video");
 
+    console.log("\n==============================");
     console.log("👉 RAW INPUT VIDEO:", video);
 
     if (!video) {
+      console.log("❌ Missing video param");
       return NextResponse.json({ error: "Missing video" }, { status: 400 });
     }
 
     const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
 
-    // 🔥 normalize path
+    // =========================
+    // 🔥 STEP 1: NORMALIZE INPUT
+    // =========================
     let cleanPath = video;
 
+    console.log("👉 STEP 1 - Initial path:", cleanPath);
+
+    // remove full domain if accidentally passed
+    cleanPath = cleanPath.replace(baseUrl, "");
+
+    console.log("👉 STEP 2 - After domain removal:", cleanPath);
+
+    // ensure leading slash
     if (!cleanPath.startsWith("/")) {
       cleanPath = "/" + cleanPath;
     }
 
-    // remove accidental domain if passed
-    cleanPath = cleanPath.replace(baseUrl, "");
+    console.log("👉 STEP 3 - Final clean path:", cleanPath);
 
-    console.log("👉 CLEAN PATH:", cleanPath);
-
-    // 🔥 TEST ONLY ONE FILE (NO WILDCARD)
+    // =========================
+    // 🔥 STEP 2: BUILD RESOURCE URL
+    // =========================
     const resourceUrl = `${baseUrl}${cleanPath}`;
 
-    console.log("👉 RESOURCE URL:", resourceUrl);
+    console.log("👉 STEP 4 - Resource URL:", resourceUrl);
 
+    // =========================
+    // 🔥 STEP 3: CLOUD FRONT KEYS
+    // =========================
     const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
     const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!;
 
     console.log("👉 KEYPAIR ID:", keyPairId ? "OK" : "MISSING");
+    console.log("👉 PRIVATE KEY:", privateKey ? "OK" : "MISSING");
 
+    // =========================
+    // 🔥 STEP 4: SIGN URL (IMPORTANT FIX HERE)
+    // =========================
     const signedUrl = getSignedUrl({
-      url: video,
+      url: resourceUrl, // ✅ FIXED (NOT `video`)
       keyPairId,
       privateKey: privateKey.replace(/\\n/g, "\n"),
       dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
     });
 
-    console.log("👉 SIGNED URL:", signedUrl);
+    console.log("👉 STEP 5 - SIGNED URL:");
+    console.log(signedUrl);
 
+    console.log("==============================\n");
+
+    // =========================
+    // RESPONSE
+    // =========================
     return NextResponse.json({
       url: signedUrl,
       debug: {
@@ -101,10 +125,12 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (err: any) {
-    console.error("❌ ERROR:", err);
+    console.error("❌ ERROR IN SIGN API:", err);
 
     return NextResponse.json(
-      { error: err.message },
+      {
+        error: err.message || "Internal error",
+      },
       { status: 500 }
     );
   }

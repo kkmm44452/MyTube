@@ -99,8 +99,8 @@ const baseUrl = "https://d3ad2g8hyy43zt.cloudfront.net";
             {/* Thumbnail / Player */}
             <div className="relative w-full aspect-video bg-black">
               {activeVideo === video.id ? (
-              //<VideoPlayer videoPath={`/api/cloudfront-playlist?video=${encodeURIComponent( video.masterUrl )}`} />
-               <VideoPlayer videoPath={ video.masterUrl } />
+              <VideoPlayer videoPath={`/api/cloudfront-playlist?video=${encodeURIComponent( video.masterUrl )}`} />
+               //<VideoPlayer videoPath={ video.masterUrl } />
 
               ) : (
                 <div
