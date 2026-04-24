@@ -131,7 +131,7 @@ setVideos(formatted);
             >
               <div className="w-full relative pb">
                 {activeVideo === video.id ? (
-  <VideoPlayer videoPath={video.masterUrl} />
+  <VideoPlayer videoPath={`/api/cloudfront-playlist?video=${encodeURIComponent( video.masterUrl )}`} />
 ) : (
   <div
     className="w-full h-full cursor-pointer group"

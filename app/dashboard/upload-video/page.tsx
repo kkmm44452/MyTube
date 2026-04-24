@@ -95,7 +95,7 @@ export default function Dashboard() {
           videos?.map((video) => (
             <div key={video.id} className="mb-6">
               <h2 className="font-bold">{video.title}</h2>
-             <VideoPlayer videoPath={video.masterUrl} />
+            <VideoPlayer videoPath={`/api/cloudfront-playlist?video=${encodeURIComponent( video.masterUrl )}`} />
             </div>
           ))
         )}
