@@ -1,0 +1,380 @@
+// import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
+// import { NextRequest, NextResponse } from "next/server";
+
+// export async function GET(req: NextRequest) {
+//   console.log("🚀 API HIT: /cloudfront-cookie");
+
+//   const origin = req.headers.get("origin");
+
+//   const allowedOrigins = new Set([
+//     "https://kkmmyoutube.netlify.app",
+//     "http://localhost:3000",
+//   ]);
+
+//   console.log("🌐 Origin:", origin);
+
+//   if (origin && !allowedOrigins.has(origin)) {
+//     console.log("❌ Origin blocked:", origin);
+//     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+//   }
+
+//   console.log("✅ Origin allowed");
+
+//   const privateKeyEnv = process.env.CLOUDFRONT_PRIVATE_KEY;
+//   const keyPairIdEnv = process.env.CLOUDFRONT_KEY_PAIR_ID;
+
+//   if (!privateKeyEnv || !keyPairIdEnv) {
+//     console.log("❌ Missing env vars");
+//     return NextResponse.json(
+//       { error: "Missing CloudFront config" },
+//       { status: 500 }
+//     );
+//   }
+
+//   const privateKey = privateKeyEnv.replace(/\\n/g, "\n");
+
+//   console.log("⚙️ Generating signed cookies...");
+
+//   // ✅ MUST USE CUSTOM POLICY (required for Key Groups)
+//   const resource = "https://d3ad2g8hyy43zt.cloudfront.net/*";
+
+//   const expires = Math.floor(Date.now() / 1000) + 20 * 60;
+
+//   const customPolicy = JSON.stringify({
+//     Statement: [
+//       {
+//         Resource: resource,
+//         Condition: {
+//           DateLessThan: {
+//             "AWS:EpochTime": expires,
+//           },
+//         },
+//       },
+//     ],
+//   });
+
+//   let cookies;
+
+//   try {
+//     cookies = getSignedCookies({
+//       keyPairId: keyPairIdEnv,
+//       privateKey,
+//       policy: customPolicy, // 🔥 IMPORTANT FIX
+//     });
+
+//     console.log("✅ Cookies generated successfully");
+//   } catch (err) {
+//     console.error("❌ CloudFront signing error:", err);
+
+//     return NextResponse.json(
+//       { error: "CloudFront signing failed" },
+//       { status: 500 }
+//     );
+//   }
+
+//   console.log("RAW COOKIES:", cookies);
+
+//   const policy = cookies["CloudFront-Policy"];
+//   const signature = cookies["CloudFront-Signature"];
+//   const keyPairId = cookies["CloudFront-Key-Pair-Id"];
+
+//   console.log("🍪 Final check:", {
+//     policy: !!policy,
+//     signature: !!signature,
+//     keyPairId: !!keyPairId,
+//   });
+
+//   if (!policy || !signature || !keyPairId) {
+//     console.log("❌ Missing cookie parts");
+//     return NextResponse.json(
+//       { error: "Failed to generate signed cookies" },
+//       { status: 500 }
+//     );
+//   }
+
+//   const res = NextResponse.json({ success: true });
+
+//   const cookieOptions = {
+//     path: "/",
+//     secure: true,
+//     httpOnly: false, // 🔥 REQUIRED for HLS
+//     sameSite: "none" as const,
+
+//   };
+
+//   res.cookies.set("CloudFront-Policy", policy, cookieOptions);
+//   res.cookies.set("CloudFront-Signature", signature, cookieOptions);
+//   res.cookies.set("CloudFront-Key-Pair-Id", keyPairId, cookieOptions);
+
+//   res.headers.set("Access-Control-Allow-Origin", origin || "*");
+//   res.headers.set("Access-Control-Allow-Credentials", "true");
+//   res.headers.set("Vary", "Origin");
+
+//   console.log("📤 Response sent successfully");
+
+//   return res;
+// }
+
+// import { NextRequest, NextResponse } from "next/server";
+// import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
+
+// const BASE = "https://d3ad2g8hyy43zt.cloudfront.net";
+
+// export async function GET(req: NextRequest) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+//     let video = searchParams.get("video");
+
+//     if (!video) {
+//       return NextResponse.json({ error: "Missing video" }, { status: 400 });
+//     }
+
+//     // 🔥 FIX: remove full CloudFront URL if passed
+//     video = video.replace(BASE, "");
+
+//     if (!video.startsWith("/")) {
+//       video = "/" + video;
+//     }
+
+//     const playlistUrl = `${BASE}${video}`;
+
+//     // 🔥 fetch original m3u8
+//     const res = await fetch(playlistUrl);
+
+//     if (!res.ok) {
+//       return NextResponse.json(
+//         { error: "Failed to fetch playlist", status: res.status },
+//         { status: 500 }
+//       );
+//     }
+
+//     let playlist = await res.text();
+
+//     const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
+//     const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
+
+//     const folder = video.replace("master.m3u8", "");
+
+//     // 🔥 rewrite playlist safely
+//     playlist = playlist
+//       .split("\n")
+//       .map((line) => {
+//         if (!line || line.startsWith("#")) return line;
+
+//         if (line.includes(".ts")) {
+//           const fileUrl = `${BASE}${folder}${line}`;
+
+//           const signed = getSignedUrl({
+//             url: fileUrl,
+//             keyPairId,
+//             privateKey,
+//             dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+//           });
+
+//           return signed;
+//         }
+
+//         return line;
+//       })
+//       .join("\n");
+
+//     return new NextResponse(playlist, {
+//       headers: {
+//         "Content-Type": "application/vnd.apple.mpegurl",
+//         "Cache-Control": "no-cache",
+//       },
+//     });
+
+//   } catch (err: any) {
+//     console.error("PLAYLIST ERROR:", err);
+
+//     return NextResponse.json(
+//       { error: err.message || "Internal error" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// import { NextRequest, NextResponse } from "next/server";
+// import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
+
+// const BASE = "https://d3ad2g8hyy43zt.cloudfront.net";
+
+// export async function GET(req: NextRequest) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+//     let video = searchParams.get("video");
+
+//     if (!video) {
+//       return NextResponse.json({ error: "Missing video" }, { status: 400 });
+//     }
+
+//     // 🔥 normalize input
+//     video = decodeURIComponent(video);
+//     video = video.replace(BASE, "");
+//     if (!video.startsWith("/")) video = "/" + video;
+
+//     const playlistUrl = `${BASE}${video}`;
+
+//     const res = await fetch(playlistUrl);
+
+//     if (!res.ok) {
+//       return NextResponse.json(
+//         { error: "Failed to fetch playlist", status: res.status },
+//         { status: 500 }
+//       );
+//     }
+
+//     let playlist = await res.text();
+
+//     const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
+//     const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
+
+//     // 🔥 extract base folder safely
+//     const folder = video.split("master.m3u8")[0];
+
+//     playlist = playlist
+//       .split("\n")
+//       .map((line) => {
+//         const trimmed = line.trim();
+
+//         if (!trimmed || trimmed.startsWith("#")) return line;
+
+//         if (trimmed.includes(".ts")) {
+//           // 🔥 normalize segment path
+//           const segmentPath = trimmed.startsWith("/")
+//             ? trimmed
+//             : `${folder}${trimmed}`;
+
+//           const fileUrl = `${BASE}${segmentPath}`;
+
+//           const signed = getSignedUrl({
+//             url: fileUrl,
+//             keyPairId,
+//             privateKey,
+//             dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+//           });
+
+//           return signed;
+//         }
+
+//         return line;
+//       })
+//       .join("\n");
+
+//     return new NextResponse(playlist, {
+//       headers: {
+//         "Content-Type": "application/vnd.apple.mpegurl",
+//         "Cache-Control": "no-cache",
+//       },
+//     });
+
+//   } catch (err: any) {
+//     console.error("PLAYLIST ERROR:", err);
+
+//     return NextResponse.json(
+//       { error: err.message || "Internal error" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+// import { NextRequest, NextResponse } from "next/server";
+// import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
+
+// const BASE = "https://d3ad2g8hyy43zt.cloudfront.net";
+
+// export async function GET(req: NextRequest) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+//     let video = searchParams.get("video");
+
+//     if (!video) {
+//       return NextResponse.json({ error: "Missing video" }, { status: 400 });
+//     }
+
+//     video = decodeURIComponent(video);
+//     if (!video.startsWith("/")) video = "/" + video;
+
+//     const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
+//     const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
+
+//     const url = `${BASE}${video}`;
+
+//     // =========================
+//     // 🔥 STEP 1: SIGN MASTER (INTERNAL ONLY)
+//     // =========================
+//     const signedMasterUrl = getSignedUrl({
+//       url,
+//       keyPairId,
+//       privateKey,
+//       dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+//     });
+
+//     // fetch master securely
+//     const res = await fetch(signedMasterUrl);
+
+//     if (!res.ok) {
+//       return NextResponse.json(
+//         { error: "Failed to fetch playlist", status: res.status },
+//         { status: 500 }
+//       );
+//     }
+
+//     let playlist = await res.text();
+
+//     const isMaster = playlist.includes("#EXT-X-STREAM-INF");
+//     const basePath = video.substring(0, video.lastIndexOf("/") + 1);
+
+//     playlist = playlist
+//       .split("\n")
+//       .map((line) => {
+//         const trimmed = line.trim();
+
+//         if (!trimmed || trimmed.startsWith("#")) return line;
+
+//         const filePath = trimmed.startsWith("/")
+//           ? trimmed
+//           : `${basePath}${trimmed}`;
+
+//         const fileUrl = `${BASE}${filePath}`;
+
+//         // =========================
+//         // 🔥 MASTER → redirect to API (NOT CloudFront)
+//         // =========================
+//         if (isMaster && trimmed.endsWith(".m3u8")) {
+//           return `/api/cloudfront-playlist?video=${encodeURIComponent(filePath)}`;
+//         }
+
+//         // =========================
+//         // 🔥 INDEX → SIGN TS ONLY
+//         // =========================
+//         if (!isMaster && trimmed.match(/\.ts(\?|$)/)) {
+//           return getSignedUrl({
+//             url: fileUrl,
+//             keyPairId,
+//             privateKey,
+//             dateLessThan: new Date(Date.now() + 60 * 60 * 1000),
+//           });
+//         }
+
+//         return line;
+//       })
+//       .join("\n");
+
+//     return new NextResponse(playlist, {
+//       headers: {
+//         "Content-Type": "application/vnd.apple.m3u8",
+//         "Cache-Control": "no-cache",
+//         "Access-Control-Allow-Origin": "*",
+//       },
+//     });
+//   } catch (err: any) {
+//     return NextResponse.json(
+//       { error: err.message || "Internal error" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
